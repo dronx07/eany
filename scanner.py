@@ -3,9 +3,11 @@
 import asyncio
 import aiohttp
 from core.database import Database
+from core.ean2asin import convert
 from core.logger import get_logger
 from core.seller_central import SellerCentral
 from core.sales_scraper import SalesScraper
+from core.requester import Requester
 import json
 
 JSON_URL = "https://raw.githubusercontent.com/dronx07/eany_best_selling/main/products.json"
@@ -42,16 +44,15 @@ async def fetch_cookies() -> tuple:
         logger.error(f"Failed to fetch cookies JSON: {e}.")
     return None,None,None
 
-async def process_product(product, semaphore, seller_cookie, db, sales_scraper):
+async def process_product(product, semaphore, amazon_cookie, seller_cookie, db, sales_scraper):
     async with semaphore:
         try:
             ean = product["product_gtin"]
             supplier_price = float(product["supplier_price"])
             supplier_cost = supplier_price * 1.20
             supplier_link = product["product_link"]
-            asin = product["asin"]
 
-
+            asin = await convert(ean, amazon_cookie)
             logger.info(f"{ean, asin}")
 
             if not asin:
@@ -141,7 +142,7 @@ async def main():
     await sales_scraper.start()
 
     semaphore = asyncio.Semaphore(100)
-    tasks = [process_product(p, semaphore, seller_cookie, db, sales_scraper) for p in products]
+    tasks = [process_product(p, semaphore, amazon_cookie, seller_cookie, db, sales_scraper) for p in products]
     await asyncio.gather(*tasks)
 
     await sales_scraper.close()
