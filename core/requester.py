@@ -24,7 +24,7 @@ class Requester:
         self.proxy = os.getenv("PROXY")
 
     async def __aenter__(self):
-        extra_params = {"timeout": 10, "allow_redirects": True, "http_version": "v2"}
+        extra_params = {"timeout": 30, "allow_redirects": True, "http_version": "v2"}
         self.session = AsyncSession(
             headers=self.headers,
             proxy=self.proxy,
